@@ -1,4 +1,5 @@
 const { Order, OrderItem, Menu, sequelize } = require('../models');
+const bahanBakuController = require('./bahanBakuController'); // import controller bahan baku
 
 // --- A. CREATE ORDER (Transaksi Database) ---
 exports.createOrder = async (req, res) => {
@@ -28,7 +29,12 @@ exports.createOrder = async (req, res) => {
     // 3. Simpan Detail Items (Bulk Create)
     await OrderItem.bulkCreate(itemsData, { transaction: t });
 
-    // 4. Commit (Simpan Permanen)
+    // 4. Kurangi stok otomatis berdasarkan BOM untuk setiap item
+    for (const item of items) {
+      await bahanBakuController.kurangiStokDariOrder(item.id_menu, item.jumlah, id_user);
+    }
+
+    // 5. Commit (Simpan Permanen)
     await t.commit();
     
     res.status(201).json({ success: true, message: 'Order berhasil', id_order });

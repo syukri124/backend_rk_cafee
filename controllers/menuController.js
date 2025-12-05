@@ -23,6 +23,31 @@ exports.createMenu = async (req, res) => {
   }
 };
 
+//nambah menu sekaligus banyak
+exports.bulkCreateMenu = async (req, res) => {
+  try {
+    const { menus } = req.body;
+
+    if (!menus || !Array.isArray(menus)) {
+      return res.status(400).json({ success: false, message: "Data harus berupa array menus" });
+    }
+
+    const result = await Menu.bulkCreate(menus, { validate: true });
+
+    res.status(201).json({
+      success: true,
+      message: `${result.length} menu berhasil ditambahkan`,
+      data: result
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal menambahkan menu", error: err.message });
+  }
+};
+
+
+
+
 // --- C. UPDATE MENU ---
 exports.updateMenu = async (req, res) => {
   try {

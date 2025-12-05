@@ -28,9 +28,8 @@ app.get('/', (req, res) => {
     res.json({ message: "RKCafee Backend running on localhost" });
 });
 
-const PORT = process.env.PORT || 3000;
-const HOST = '127.0.0.1'; // Localhost only
-
-app.listen(PORT, HOST, () => {
-    console.log(`Server running at http://${HOST}:${PORT}`);
+// Port
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server berjalan di http://localhost:${PORT}`);
 });

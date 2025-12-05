@@ -10,12 +10,12 @@ router.get('/bom', verifyToken, verifyRole(['OWNER', 'KASIR', 'BARISTA']), bomCo
 router.get('/bom/menu/:id_menu', verifyToken, verifyRole(['OWNER', 'KASIR', 'BARISTA']), bomController.getBOMByMenu);
 
 // --- CREATE BOM (OWNER SAJA) ---
-router.post('/bom', verifyToken, verifyRole(['OWNER']), bomController.createBOM);
+router.post('/bom', verifyToken, verifyRole(['OWNER', 'KASIR']), bomController.createBOM);
 
 // --- UPDATE BOM (OWNER SAJA) ---
-router.put('/bom/:id_bom', verifyToken, verifyRole(['OWNER']), bomController.updateBOM);
+router.put('/bom/:id_bom', verifyToken, verifyRole(['OWNER', 'KASIR']), bomController.updateBOM);
 
 // --- DELETE BOM (OWNER SAJA) ---
-router.delete('/bom/:id_bom', verifyToken, verifyRole(['OWNER']), bomController.deleteBOM);
+router.delete('/bom/:id_bom', verifyToken, verifyRole(['OWNER', 'KASIR']), bomController.deleteBOM);
 
 module.exports = router;
