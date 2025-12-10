@@ -35,6 +35,3 @@ if (process.env.NODE_ENV !== "production") {
         console.log(`Server berjalan di http://localhost:${PORT}`);
     });
 }
-
-// Export app untuk digunakan Vercel
-module.exports = app;
