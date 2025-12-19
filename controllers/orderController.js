@@ -1,4 +1,4 @@
-const { Menu, BahanBaku, BillOfMaterials, RiwayatStok, Order, OrderItem } = require('../models');
+const { Menu, BahanBaku, BillOfMaterials, RiwayatStok, Order, OrderItem, sequelize } = require('../models');
 
 const generateOrderId = async () => {
   // Ambil order terakhir berdasarkan nomor terbesar
@@ -18,42 +18,74 @@ const generateOrderId = async () => {
   return `ORD-${padded}`;
 };
 
-
-module.exports = {
-
   // =============================
   //  CREATE ORDER
   // =============================
-  createOrder: async (req, res) => {
-    try {
-      const { nama_menu, jumlah_order, id_user } = req.body;
+  exports.createOrder = async (req, res) => {
+  const t = await sequelize.transaction();
 
-      const menu = await Menu.findOne({ where: { nama_menu } });
+  try {
+    const { id_user, items } = req.body;
+
+    // 1️⃣ VALIDASI
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Item order tidak boleh kosong"
+      });
+    }
+
+    // 2️⃣ GENERATE ID ORDER
+    const id_order = await generateOrderId();
+
+    // 3️⃣ BUAT ORDER HEADER DULU (WAJIB)
+    const order = await Order.create({
+      id_order,
+      total_bayar: 0, // nanti diupdate
+      id_user,
+      status_pesanan: "BARU",
+      tanggal: new Date()
+    }, { transaction: t });
+
+    let total_bayar = 0;
+
+    // 4️⃣ LOOP ITEM
+    for (const item of items) {
+
+      const menu = await Menu.findByPk(item.id_menu, { transaction: t });
       if (!menu) {
-        return res.status(404).json({ message: `Menu ${nama_menu} tidak ditemukan` });
+        throw new Error(`Menu ${item.id_menu} tidak ditemukan`);
       }
 
-      const id_menu = menu.id_menu;
-      const total_harga = menu.harga * jumlah_order;
+      const subtotal = menu.harga * item.jumlah;
+      total_bayar += subtotal;
 
-      const bomList = await BillOfMaterials.findAll({ where: { id_menu } });
+      // 5️⃣ CEK BOM MENU
+      const bomList = await BillOfMaterials.findAll({
+        where: { id_menu: menu.id_menu },
+        transaction: t
+      });
+
       if (!bomList.length) {
-        return res.status(400).json({ message: `Menu ${nama_menu} tidak memiliki BOM` });
+        throw new Error(`Menu ${menu.nama_menu} belum memiliki BOM`);
       }
 
+      // 6️⃣ CEK & KURANGI STOK
       for (const bom of bomList) {
-        const bahan = await BahanBaku.findOne({ where: { id_bahan: bom.id_bahan } });
+        const bahan = await BahanBaku.findByPk(bom.id_bahan, { transaction: t });
 
-        const total_pengurangan = bom.jumlah_dibutuhkan * jumlah_order;
+        if (!bahan) {
+          throw new Error(`Bahan ${bom.id_bahan} tidak ditemukan`);
+        }
+
+        const total_pengurangan = bom.jumlah_dibutuhkan * item.jumlah;
 
         if (bahan.stok_saat_ini < total_pengurangan) {
-          return res.status(400).json({
-            message: `Stok bahan ${bahan.nama_bahan} tidak mencukupi`
-          });
+          throw new Error(`Stok ${bahan.nama_bahan} tidak mencukupi`);
         }
 
         bahan.stok_saat_ini -= total_pengurangan;
-        await bahan.save();
+        await bahan.save({ transaction: t });
 
         await RiwayatStok.create({
           id_bahan: bahan.id_bahan,
@@ -62,35 +94,50 @@ module.exports = {
           jenis_transaksi: 'KURANG',
           keterangan: `Order ${menu.nama_menu}`,
           tanggal: new Date()
-        });
+        }, { transaction: t });
       }
 
-      const newOrder = await Order.create({
-        id_order: await generateOrderId(),
-        id_menu,
-        jumlah_order,
-        total_harga,
-        total_bayar: total_harga,
-        id_user,
-        status: "PENDING",
-        tanggal: new Date()
-      });
-
-      return res.status(201).json({
-        message: "Order berhasil dibuat",
-        order: newOrder
-      });
-
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Terjadi kesalahan", error: error.message });
+      // 7️⃣ SIMPAN ORDER ITEM (SETELAH ORDER ADA)
+      await OrderItem.create({
+        id_order: order.id_order,
+        id_menu: menu.id_menu,
+        jumlah: item.jumlah,
+        subtotal
+      }, { transaction: t });
     }
-  },
+
+    // 8️⃣ UPDATE TOTAL BAYAR ORDER
+    order.total_bayar = total_bayar;
+    await order.save({ transaction: t });
+
+    // 9️⃣ COMMIT
+    await t.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Order berhasil dibuat",
+      data: {
+        id_order: order.id_order,
+        total_bayar
+      }
+    });
+
+  } catch (error) {
+    await t.rollback();
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 
   // =============================
   //  UPDATE STATUS ORDER
   // =============================
-updateOrderStatus: async (req, res) => {
+exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status_pesanan } = req.body;
@@ -125,13 +172,13 @@ updateOrderStatus: async (req, res) => {
       error: error.message
     });
   }
-},
+};
 
 
   // =============================
   //  LAYAR DAPUR
   // =============================
-  getKitchenOrders: async (req, res) => {
+  exports.getKitchenOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
       where: {
@@ -163,7 +210,4 @@ updateOrderStatus: async (req, res) => {
     console.error(error);
     return res.status(500).json({ message: "Terjadi kesalahan", error: error.message });
   }
-}
-
-
 };

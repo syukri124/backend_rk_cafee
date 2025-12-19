@@ -1,4 +1,5 @@
 const { RiwayatStok, BahanBaku } = require('../models');
+const konversi = require('../helpers/konversiSatuan');
 
 // --- GET ALL RIWAYAT STOK ---
 exports.getAllRiwayatStok = async (req, res) => {
@@ -31,26 +32,39 @@ exports.getRiwayatByBahan = async (req, res) => {
 // --- CREATE RIWAYAT MANUAL (Owner/Kasir) ---
 exports.createRiwayat = async (req, res) => {
   try {
-    const { id_bahan, jumlah_berubah, jenis_transaksi, keterangan } = req.body;
+    const { id_bahan, jumlah_berubah, satuan_input, jenis_transaksi, keterangan } = req.body;
 
     const bahan = await BahanBaku.findOne({ where: { id_bahan } });
-    if (!bahan) return res.status(404).json({ success: false, message: 'Bahan baku tidak ditemukan' });
+    if (!bahan) {
+      return res.status(404).json({ success: false, message: 'Bahan baku tidak ditemukan' });
+    }
 
-    // Update stok bahan juga
-    bahan.stok_saat_ini += jumlah_berubah;
+    const jumlahKonversi = konversi(
+      jumlah_berubah,
+      satuan_input,
+      bahan.satuan
+    );
+
+    bahan.stok_saat_ini += jumlahKonversi;
     await bahan.save();
 
     const newData = await RiwayatStok.create({
       id_bahan,
       id_user: req.user.id_user,
-      jumlah_berubah,
+      jumlah_berubah: jumlahKonversi,
       jenis_transaksi,
       keterangan,
       tanggal: new Date()
     });
 
-    res.status(201).json({ success: true, message: 'Riwayat stok berhasil dicatat', data: newData });
+    res.status(201).json({
+      success: true,
+      message: 'Riwayat stok berhasil dicatat',
+      data: newData
+    });
+
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+

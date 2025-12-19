@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const db = require("./models");
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -23,15 +24,14 @@ app.use('/api', bahanRoutes);
 app.use('/api', bomRoutes);
 app.use('/api', riwayatStokRoutes);
 
-// Default Route
-app.get('/', (req, res) => {
-    res.json({ message: "RKCafee Backend running" });
-});
+// Sync database
+db.sequelize
+  .sync({ alter: false }) 
+  .then(() => console.log("Database connected & synchronized"))
+  .catch((err) => console.error("DB Sync Error:", err));
 
-// Jalankan server hanya jika sedang di LOCALHOST
-if (process.env.NODE_ENV !== "production") {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server berjalan di http://localhost:${PORT}`);
-    });
-}
+// Jalankan server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server berjalan di http://localhost:${PORT}`);
+});

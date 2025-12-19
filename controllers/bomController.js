@@ -1,4 +1,4 @@
-const { BillOfMaterials, Menu, BahanBaku } = require('../models');
+const { BillOfMaterials, Menu, BahanBaku, sequelize } = require('../models');
 
 // --- A. GET ALL BOM ---
 exports.getAllBOM = async (req, res) => {
@@ -36,25 +36,47 @@ exports.getBOMByMenu = async (req, res) => {
 
 // --- C. CREATE BOM ---
 exports.createBOM = async (req, res) => {
-  try {
-    const { id_bom, id_menu, id_bahan, jumlah_dibutuhkan } = req.body;
+  const t = await BillOfMaterials.sequelize.transaction();
 
-    const newBOM = await BillOfMaterials.create({
-      id_bom,
+  try {
+    const { id_menu, bahan } = req.body;
+
+    if (!id_menu || !bahan || !Array.isArray(bahan) || bahan.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'id_menu dan bahan wajib diisi'
+      });
+    }
+
+    const dataBOM = bahan.map((item, index) => ({
+      id_bom: `BOM-${Date.now()}-${index}`,
       id_menu,
-      id_bahan,
-      jumlah_dibutuhkan
+      id_bahan: item.id_bahan,
+      jumlah_dibutuhkan: item.jumlah_dibutuhkan
+    }));
+
+    const newBOM = await BillOfMaterials.bulkCreate(dataBOM, {
+      transaction: t
     });
+
+    await t.commit();
 
     res.status(201).json({
       success: true,
       message: 'BOM berhasil dibuat',
+      total_bahan: newBOM.length,
       data: newBOM
     });
+
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    await t.rollback();
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 };
+
 
 // --- D. UPDATE BOM ---
 exports.updateBOM = async (req, res) => {
@@ -93,5 +115,60 @@ exports.deleteBOM = async (req, res) => {
     res.json({ success: true, message: 'BOM berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+
+
+
+exports.bulkCreateBOM = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const bomData = req.body.bom;
+
+    if (!Array.isArray(bomData) || bomData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Data BOM harus berupa array"
+      });
+    }
+
+    let counter = 1;
+    const finalBOM = [];
+
+    for (const menu of bomData) {
+      if (!menu.id_menu || !Array.isArray(menu.bahan)) {
+        throw new Error("Format BOM tidak valid");
+      }
+
+      for (const bahan of menu.bahan) {
+        finalBOM.push({
+          id_bom: `BOM-${String(counter++).padStart(4, '0')}`,
+          id_menu: menu.id_menu,
+          id_bahan: bahan.id_bahan,
+          jumlah_dibutuhkan: bahan.jumlah_dibutuhkan
+        });
+      }
+    }
+
+    await BillOfMaterials.bulkCreate(finalBOM, {
+      validate: true,
+      transaction: t
+    });
+
+    await t.commit();
+
+    res.status(201).json({
+      success: true,
+      message: "Bulk BOM berhasil ditambahkan",
+      total: finalBOM.length
+    });
+
+  } catch (err) {
+    await t.rollback();
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 };
