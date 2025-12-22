@@ -14,7 +14,19 @@ const riwayatStokRoutes = require('./routes/riwayatStokRoutes');
 const laporanRoutes = require('./routes/laporanRoutes');
 
 const app = express();
-app.use(cors());
+
+// Konfigurasi CORS untuk Railway production
+const corsOptions = {
+  origin: [
+    'https://frontendrkcafee-production.up.railway.app', // Frontend Railway
+    'http://localhost:8080', // Development
+    'http://localhost:3000', // Development alternative
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
 // Daftarkan semua routes
@@ -28,7 +40,7 @@ app.use('/api', laporanRoutes);
 
 // Sync database
 db.sequelize
-  .sync({ alter: false }) 
+  .sync({ alter: false })
   .then(() => console.log("Database connected & synchronized"))
   .catch((err) => console.error("DB Sync Error:", err));
 
