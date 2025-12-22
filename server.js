@@ -11,6 +11,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const bahanRoutes = require('./routes/bahanRoutes');
 const bomRoutes = require('./routes/bomRoutes');
 const riwayatStokRoutes = require('./routes/riwayatStokRoutes');
+const laporanRoutes = require('./routes/laporanRoutes');
 
 const app = express();
 app.use(cors());
@@ -23,6 +24,7 @@ app.use('/api', orderRoutes);
 app.use('/api', bahanRoutes);
 app.use('/api', bomRoutes);
 app.use('/api', riwayatStokRoutes);
+app.use('/api', laporanRoutes);
 
 // Sync database
 db.sequelize
