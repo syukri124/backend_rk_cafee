@@ -38,6 +38,11 @@ app.use('/api', bomRoutes);
 app.use('/api', riwayatStokRoutes);
 app.use('/api', laporanRoutes);
 
+// Default Route
+app.get('/', (req, res) => {
+  res.json({ message: "RKCafee Backend is Running!" });
+});
+
 // Sync database
 db.sequelize
   .sync({ alter: false })
