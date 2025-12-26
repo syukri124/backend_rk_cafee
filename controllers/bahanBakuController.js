@@ -138,10 +138,10 @@ exports.updateBahan = async (req, res) => {
 // --- HAPUS BAHAN BAKU ---
 exports.deleteBahan = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id_bahan } = req.params;
 
     const deleted = await BahanBaku.destroy({
-      where: { id_bahan: id },
+      where: { id_bahan },
     });
 
     if (!deleted) {
