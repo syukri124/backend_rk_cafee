@@ -24,6 +24,7 @@ exports.getAllBOM = async (req, res) => {
       }
 
       grouped[idMenu].resep.push({
+        id_bom: item.id_bom,
         id_bahan: item.id_bahan,
         nama_bahan: item.BahanBaku.nama_bahan,
         jumlah_dibutuhkan: item.jumlah_dibutuhkan, // ⬅️ TAKARAN RESEP
