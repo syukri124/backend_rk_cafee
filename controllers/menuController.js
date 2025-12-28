@@ -111,6 +111,18 @@ exports.updateMenu = async (req, res) => {
           fs.unlinkSync(oldPath);
         }
       }
+    } else if (req.body.remove_image === 'true' || req.body.remove_image === true) {
+      // Logic untuk hapus gambar (set null)
+      updateData.gambar = null;
+      if (menu.gambar) {
+        const fs = require('fs');
+        const path = require('path');
+        const relativePath = menu.gambar.startsWith('/') ? menu.gambar.substring(1) : menu.gambar;
+        const oldPath = path.join(__dirname, '..', relativePath);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
     }
 
     await Menu.update(updateData, { where: { id_menu: id } });
