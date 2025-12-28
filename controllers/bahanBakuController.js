@@ -82,7 +82,7 @@ exports.createBahan = async (req, res) => {
 exports.updateBahan = async (req, res) => {
   try {
     const { id_bahan } = req.params;
-    const { jumlah, satuan_input, keterangan, stok_minimum } = req.body;
+    const { jumlah, satuan_input, keterangan, stok_minimum, nama_bahan, satuan } = req.body;
 
     const bahan = await BahanBaku.findOne({ where: { id_bahan } });
 
@@ -94,15 +94,18 @@ exports.updateBahan = async (req, res) => {
     }
 
     // ===============================
-    // 🔹 MODE 1: UPDATE STOK MINIMUM
+    // 🔹 MODE 1: UPDATE PROPERTY (NAMA, SATUAN, STOK MINIMUM)
     // ===============================
-    if (typeof stok_minimum === 'number') {
-      bahan.stok_minimum = stok_minimum;
+    if (nama_bahan || satuan || typeof stok_minimum === 'number') {
+      if (nama_bahan) bahan.nama_bahan = nama_bahan;
+      if (satuan) bahan.satuan = satuan;
+      if (typeof stok_minimum === 'number') bahan.stok_minimum = stok_minimum;
+
       await bahan.save();
 
       return res.json({
         success: true,
-        message: "Stok minimum berhasil diperbarui",
+        message: "Properti bahan baku berhasil diperbarui",
         data: bahan
       });
     }
@@ -113,7 +116,7 @@ exports.updateBahan = async (req, res) => {
     if (typeof jumlah !== 'number' || !satuan_input) {
       return res.status(400).json({
         success: false,
-        message: "Gunakan field jumlah (number) & satuan_input"
+        message: "Gunakan field jumlah (number) & satuan_input atau field properti (nama/satuan/min)"
       });
     }
 
