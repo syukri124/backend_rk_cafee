@@ -104,7 +104,9 @@ exports.updateMenu = async (req, res) => {
       if (menu.gambar) {
         const fs = require('fs');
         const path = require('path');
-        const oldPath = path.join(__dirname, '..', menu.gambar);
+        // Hilangkan leading slash jika ada agar path.join bekerja dengan benar
+        const relativePath = menu.gambar.startsWith('/') ? menu.gambar.substring(1) : menu.gambar;
+        const oldPath = path.join(__dirname, '..', relativePath);
         if (fs.existsSync(oldPath)) {
           fs.unlinkSync(oldPath);
         }
