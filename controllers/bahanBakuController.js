@@ -1,5 +1,24 @@
 const { BahanBaku, RiwayatStok, BillOfMaterials, sequelize } = require('../models');
+const { Op } = require('sequelize');
 const konversi = require('../helpers/konversiSatuan');
+
+// --- GET LOW STOCK ALERTS ---
+exports.getLowStockAlerts = async (req, res) => {
+  try {
+    const alerts = await BahanBaku.findAll({
+      where: {
+        stok_saat_ini: {
+          [Op.lte]: sequelize.col('stok_minimum')
+        }
+      },
+      order: [["nama_bahan", "ASC"]],
+    });
+
+    res.json({ success: true, count: alerts.length, data: alerts });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
 
 // --- GET ALL BAHAN BAKU ---
 exports.getAllBahan = async (req, res) => {
