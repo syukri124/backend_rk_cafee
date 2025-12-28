@@ -10,6 +10,10 @@ const sequelize = new Sequelize(
     port: process.env.DB_PORT, // port
     dialect: "postgres",
     logging: false,
+    timezone: '+07:00', // Set timezone to WIB (UTC+7)
+    dialectOptions: {
+      timezone: '+07:00',
+    },
     pool: {
       max: 5,
       min: 0,
