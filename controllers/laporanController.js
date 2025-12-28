@@ -70,13 +70,31 @@ exports.getLaporanPenjualan = async (req, res) => {
       total_terjual: Number(item.get('total_terjual'))
     }));
 
+    // 🔹 Detail Semua Pesanan
+    const detailPesanan = await Order.findAll({
+      where: {
+        tanggal: { [Op.between]: [startDate, endDate] }
+      },
+      include: [{
+        model: OrderItem,
+        as: 'items',
+        include: [{
+          model: Menu,
+          as: 'menu_detail',
+          attributes: ['nama_menu', 'harga']
+        }]
+      }],
+      order: [['tanggal', 'DESC']]
+    });
+
     // 🔹 Response
     res.json({
       periode: { dari: startDate, sampai: endDate },
       total_order: Number(orderSummary.total_order || 0),
       total_omzet: Number(orderSummary.total_omzet || 0),
       total_item: Number(totalItem.total_item || 0),
-      menu_terlaris: topMenu
+      menu_terlaris: topMenu,
+      detail_pesanan: detailPesanan
     });
 
   } catch (err) {
