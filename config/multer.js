@@ -17,14 +17,16 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const allowedExts = /jpeg|jpg|png|webp/;
+    const allowedMime = /image\/jpeg|image\/jpg|image\/png|image\/webp/;
+
+    const extname = allowedExts.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMime.test(file.mimetype);
 
     if (extname && mimetype) {
         cb(null, true);
     } else {
-        cb(new Error('Hanya file gambar JPG/JPEG yang diperbolehkan'));
+        cb(new Error(`File format ${path.extname(file.originalname)} (${file.mimetype}) tidak didukung. Gunakan JPG/PNG.`));
     }
 };
 

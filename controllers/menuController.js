@@ -120,7 +120,12 @@ exports.updateMenu = async (req, res) => {
       message: "Menu berhasil diupdate",
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("UpdateMenu Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Gagal update menu: " + err.message,
+      error: err.stack
+    });
   }
 };
 
