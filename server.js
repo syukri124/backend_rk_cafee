@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
 
 // Sync database
 db.sequelize
-  .sync({ alter: false })
+  .sync({ alter: true })
   .then(() => console.log("Database connected & synchronized"))
   .catch((err) => console.error("DB Sync Error:", err));
 
