@@ -137,25 +137,44 @@ exports.updateBahan = async (req, res) => {
 
 // --- HAPUS BAHAN BAKU ---
 exports.deleteBahan = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { id_bahan } = req.params;
 
+    // 1. Hapus riwayat stok terkait
+    await RiwayatStok.destroy({
+      where: { id_bahan },
+      transaction: t
+    });
+
+    // 2. Hapus BOM terkait (agar tidak error constraint)
+    await BillOfMaterials.destroy({
+      where: { id_bahan },
+      transaction: t
+    });
+
+    // 3. Hapus bahan baku utama
     const deleted = await BahanBaku.destroy({
       where: { id_bahan },
+      transaction: t
     });
 
     if (!deleted) {
+      await t.rollback();
       return res.status(404).json({
         success: false,
         message: "Bahan baku tidak ditemukan",
       });
     }
 
+    await t.commit();
+
     res.json({
       success: true,
-      message: "Bahan baku berhasil dihapus",
+      message: "Bahan baku dan data terkait berhasil dihapus",
     });
   } catch (err) {
+    if (t) await t.rollback();
     res.status(500).json({ success: false, error: err.message });
   }
 };
