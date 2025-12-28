@@ -6,16 +6,18 @@ const konversi = require('../helpers/konversiSatuan');
 exports.getLowStockAlerts = async (req, res) => {
   try {
     const alerts = await BahanBaku.findAll({
-      where: {
-        stok_saat_ini: {
-          [Op.lte]: sequelize.col('stok_minimum')
-        }
-      },
+      where: sequelize.where(
+        sequelize.col('stok_saat_ini'),
+        '<=',
+        sequelize.col('stok_minimum')
+      ),
       order: [["nama_bahan", "ASC"]],
     });
 
+    console.log(`[DEBUG] Low stock search found ${alerts.length} items`);
     res.json({ success: true, count: alerts.length, data: alerts });
   } catch (err) {
+    console.error("[ERROR] getLowStockAlerts:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
