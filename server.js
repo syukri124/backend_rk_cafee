@@ -32,6 +32,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
+// Serve static files untuk gambar
+app.use('/uploads', express.static('uploads'));
+
 // Daftarkan semua routes
 app.use('/api', authRoutes);
 app.use('/api', menuRoutes);

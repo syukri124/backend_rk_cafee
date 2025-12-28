@@ -24,12 +24,15 @@ exports.createMenu = async (req, res) => {
       status_tersedia,
     } = req.body;
 
+    const gambar = req.file ? `/uploads/menu/${req.file.filename}` : null;
+
     const newMenu = await Menu.create({
       id_menu,
       nama_menu,
       harga,
       kategori,
       status_tersedia,
+      gambar,
     });
 
     res.status(201).json({
@@ -83,17 +86,32 @@ exports.updateMenu = async (req, res) => {
       status_tersedia,
     } = req.body;
 
-    const [updated] = await Menu.update(
-      { nama_menu, harga, kategori, status_tersedia },
-      { where: { id_menu: id } }
-    );
-
-    if (!updated) {
+    const menu = await Menu.findByPk(id);
+    if (!menu) {
       return res.status(404).json({
         success: false,
         message: "Menu tidak ditemukan",
       });
     }
+
+    const updateData = { nama_menu, harga, kategori, status_tersedia };
+
+    // Jika ada file baru, update gambar
+    if (req.file) {
+      updateData.gambar = `/uploads/menu/${req.file.filename}`;
+
+      // Hapus gambar lama jika ada
+      if (menu.gambar) {
+        const fs = require('fs');
+        const path = require('path');
+        const oldPath = path.join(__dirname, '..', menu.gambar);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+    }
+
+    await Menu.update(updateData, { where: { id_menu: id } });
 
     res.json({
       success: true,
