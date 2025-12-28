@@ -78,55 +78,56 @@ exports.createOrder = async (req, res) => {
       const subtotal = menu.harga * item.jumlah;
       total_bayar += subtotal;
 
- // 5️⃣ AMBIL BOM MENU (BOLEH KOSONG)
-const bomList = await BillOfMaterials.findAll({
-  where: { id_menu: menu.id_menu },
-  transaction: t,
-});
+      // 5️⃣ AMBIL BOM MENU (BOLEH KOSONG)
+      const bomList = await BillOfMaterials.findAll({
+        where: { id_menu: menu.id_menu },
+        transaction: t,
+      });
 
-// 6️⃣ JIKA ADA BOM → CEK & KURANGI STOK
-if (bomList.length > 0) {
-  for (const bom of bomList) {
-    const bahan = await BahanBaku.findByPk(bom.id_bahan, {
-      transaction: t,
-    });
+      // 6️⃣ JIKA ADA BOM → CEK & KURANGI STOK
+      if (bomList.length > 0) {
+        for (const bom of bomList) {
+          const bahan = await BahanBaku.findByPk(bom.id_bahan, {
+            transaction: t,
+          });
 
-    if (!bahan) {
-      throw new Error(`Bahan ${bom.id_bahan} tidak ditemukan`);
-    }
+          if (!bahan) {
+            throw new Error(`Bahan ${bom.id_bahan} tidak ditemukan`);
+          }
 
-    const total_pengurangan =
-      bom.jumlah_dibutuhkan * item.jumlah;
+          const total_pengurangan =
+            bom.jumlah_dibutuhkan * item.jumlah;
 
-    if (bahan.stok_saat_ini < total_pengurangan) {
-      throw new Error(
-        `Stok ${bahan.nama_bahan} tidak mencukupi`
-      );
-    }
+          if (bahan.stok_saat_ini < total_pengurangan) {
+            throw new Error(
+              `Stok ${bahan.nama_bahan} tidak mencukupi`
+            );
+          }
 
-    bahan.stok_saat_ini -= total_pengurangan;
-    await bahan.save({ transaction: t });
+          bahan.stok_saat_ini -= total_pengurangan;
+          await bahan.save({ transaction: t });
 
-    await RiwayatStok.create(
-      {
-        id_bahan: bahan.id_bahan,
-        id_user,
-        jumlah_berubah: -total_pengurangan,
-        jenis_transaksi: "KURANG",
-        keterangan: `Order ${menu.nama_menu}`,
-        tanggal: new Date(),
-      },
-      { transaction: t }
-    );
-  }
-}
+          await RiwayatStok.create(
+            {
+              id_bahan: bahan.id_bahan,
+              id_user,
+              jumlah_berubah: -total_pengurangan,
+              jenis_transaksi: "KURANG",
+              keterangan: `Order ${menu.nama_menu}`,
+              tanggal: new Date(),
+            },
+            { transaction: t }
+          );
+        }
+      }
 
-      // 7️⃣ SIMPAN ORDER ITEM
+      // 7️⃣ SIMPAN ORDER ITEM (dengan catatan)
       await OrderItem.create(
         {
           id_order: order.id_order,
           id_menu: menu.id_menu,
           jumlah: item.jumlah,
+          catatan: item.catatan || null, // Tambahkan catatan per item
           subtotal,
         },
         { transaction: t }

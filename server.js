@@ -4,6 +4,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const db = require("./models");
 
+// Set timezone to Indonesia (WIB)
+process.env.TZ = 'Asia/Jakarta';
+
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const menuRoutes = require('./routes/menuRoutes');
