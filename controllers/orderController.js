@@ -204,6 +204,95 @@ exports.updateOrderStatus = async (req, res) => {
 };
 
 // =============================
+//  DELETE ORDER (BATAL)
+// =============================
+exports.deleteOrder = async (req, res) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findOne({
+      where: { id_order: id },
+      include: [{
+        model: OrderItem,
+        as: 'items',
+        include: [{
+          model: Menu,
+          as: 'menu_detail'
+        }]
+      }],
+      transaction: t
+    });
+
+    if (!order) {
+      await t.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Order tidak ditemukan",
+      });
+    }
+
+    // Kembalikan stok bahan baku
+    for (const item of order.items) {
+      const bomList = await BillOfMaterials.findAll({
+        where: { id_menu: item.id_menu },
+        transaction: t,
+      });
+
+      for (const bom of bomList) {
+        const bahan = await BahanBaku.findByPk(bom.id_bahan, {
+          transaction: t,
+        });
+
+        if (bahan) {
+          const total_pengembalian = bom.jumlah_dibutuhkan * item.jumlah;
+          bahan.stok_saat_ini += total_pengembalian;
+          await bahan.save({ transaction: t });
+
+          await RiwayatStok.create(
+            {
+              id_bahan: bahan.id_bahan,
+              id_user: order.id_user,
+              jumlah_berubah: total_pengembalian,
+              jenis_transaksi: "TAMBAH",
+              keterangan: `Pembatalan Order ${order.id_order}`,
+              tanggal: new Date(),
+            },
+            { transaction: t }
+          );
+        }
+      }
+    }
+
+    // Hapus order items
+    await OrderItem.destroy({
+      where: { id_order: id },
+      transaction: t
+    });
+
+    // Hapus order
+    await order.destroy({ transaction: t });
+
+    await t.commit();
+
+    return res.json({
+      success: true,
+      message: "Order berhasil dibatalkan dan stok dikembalikan",
+    });
+  } catch (error) {
+    await t.rollback();
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan",
+      error: error.message,
+    });
+  }
+};
+
+// =============================
 //  LAYAR DAPUR
 // =============================
 exports.getKitchenOrders = async (req, res) => {
