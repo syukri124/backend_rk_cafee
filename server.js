@@ -18,7 +18,7 @@ const app = express();
 // Konfigurasi CORS untuk Railway production
 const corsOptions = {
   origin: [
-    'https://frontendrkcafee-production.up.railway.app', // Frontend Railway
+    'https://rk-cafe.up.railway.app', // Frontend Railway
     'http://localhost:8080', // Development
     'http://localhost:3000', // Development alternative
   ],
